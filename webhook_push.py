@@ -213,12 +213,12 @@ def get_demo_data() -> Dict[str, Any]:
         ],
         "system": {
             "docker_version": "24.0.7",
-            "containers_total": 10,
-            "containers_running": 9,
-            "containers_paused": 0,
-            "containers_stopped": 1,
-            "cpu_percent": round(psutil.cpu_percent(interval=0.1, percpu=False), 1),
-            "memory_percent": round((psutil.virtual_memory().used / psutil.virtual_memory().total) * 100, 1)
+            "total_containers": 10,
+            "running_containers": 9,
+            "paused_containers": 0,
+            "stopped_containers": 1,
+            "total_cpu_percent": round(psutil.cpu_percent(interval=0.1, percpu=False), 1),
+            "total_memory_percent": round((psutil.virtual_memory().used / psutil.virtual_memory().total) * 100, 1)
         },
         "last_update": datetime.now().isoformat()
     }
@@ -227,7 +227,7 @@ def get_demo_data() -> Dict[str, Any]:
 def collect_docker_data(config: Dict[str, Any]) -> Dict[str, Any]:
     """Collect Docker container data"""
     docker_host = config.get('docker_host', 'unix:///var/run/docker.sock')
-    docker_api_version = config.get('docker_api_version', '1.41')
+    docker_api_version = config.get('docker_api_version', 'auto')
     show_stopped = config.get('show_stopped', False)
     cpu_threshold = int(config.get('cpu_threshold', 80))
     memory_threshold = int(config.get('memory_threshold', 85))
@@ -235,7 +235,11 @@ def collect_docker_data(config: Dict[str, Any]) -> Dict[str, Any]:
     sort_order = config.get('sort_order', 'desc')
 
     # Connect to Docker
-    client = docker.DockerClient(base_url=docker_host, version=docker_api_version)
+    # Use 'auto' to let the client negotiate the API version, or specific version if configured
+    if docker_api_version == 'auto':
+        client = docker.DockerClient(base_url=docker_host)
+    else:
+        client = docker.DockerClient(base_url=docker_host, version=docker_api_version)
 
     # Get system info
     info = client.info()
@@ -291,12 +295,12 @@ def collect_docker_data(config: Dict[str, Any]) -> Dict[str, Any]:
         "containers": containers_data,
         "system": {
             "docker_version": info.get('ServerVersion', 'unknown'),
-            "containers_total": info.get('Containers', 0),
-            "containers_running": info.get('ContainersRunning', 0),
-            "containers_paused": info.get('ContainersPaused', 0),
-            "containers_stopped": info.get('ContainersStopped', 0),
-            "cpu_percent": round(psutil.cpu_percent(interval=0.1, percpu=False), 1),
-            "memory_percent": round((psutil.virtual_memory().used / psutil.virtual_memory().total) * 100, 1),
+            "total_containers": info.get('Containers', 0),
+            "running_containers": info.get('ContainersRunning', 0),
+            "paused_containers": info.get('ContainersPaused', 0),
+            "stopped_containers": info.get('ContainersStopped', 0),
+            "total_cpu_percent": round(psutil.cpu_percent(interval=0.1, percpu=False), 1),
+            "total_memory_percent": round((psutil.virtual_memory().used / psutil.virtual_memory().total) * 100, 1),
         },
         "last_update": datetime.now().isoformat()
     }
